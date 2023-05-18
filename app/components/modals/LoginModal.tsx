@@ -1,0 +1,123 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import useLoginModal from "@/app/hooks/useLoginModal";
+import useRegisterModal from "@/app/hooks/useRegisterModal";
+import Modal from "./Modal";
+import Heading from "../Heading";
+import Input from "../inputs/Input";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+
+const LoginModal = () => {
+  const router = useRouter();
+
+  const registerModal = useRegisterModal();
+  const loginModal = useLoginModal();
+
+  const [isLoading, setIsLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FieldValues>({
+    defaultValues: {
+      userName: "",
+      password: "",
+    },
+  });
+
+  const onSubmit: SubmitHandler<FieldValues> = async (data) => {
+    setIsLoading(true);
+    await axios
+      .post(`http://localhost:8080/user/login`, data)
+      .then((res) => {
+        setIsLoading(false);
+        localStorage.setItem("userName", data.username);
+        localStorage.setItem("password", data.password);
+        toast.success("Logged in");
+        router.refresh();
+        loginModal.onClose();
+      })
+      .catch((error) => {
+        toast.error("Something went wrong. Please try again!");
+      });
+  };
+
+  const toggle = useCallback(() => {
+    loginModal.onClose();
+    registerModal.onOpen();
+  }, [loginModal, registerModal]);
+
+  const bodyContent = (
+    <div className="flex flex-col gap-4">
+      <Heading title="Welcome back" subtitle="Login to your account!" />
+      <Input
+        id="username"
+        label="username"
+        disabled={isLoading}
+        register={register}
+        errors={errors}
+        required
+      />
+      <Input
+        id="password"
+        type="password"
+        label="Password"
+        disabled={isLoading}
+        register={register}
+        errors={errors}
+        required
+      />
+    </div>
+  );
+
+  const footerContent = (
+    <div
+      className="
+      flex flex-col gap-4 mt-3
+    "
+    >
+      <hr />
+      <div
+        className="
+        text-neutral-500
+        text-center
+        mt-4
+        font-light
+      "
+      >
+        <div className="justify-center flex flex-row gap-2 items-center">
+          <div>First time using Quiz Maker?</div>
+          <div
+            onClick={toggle}
+            className="
+            text-neutral-800
+            cursor-pointer
+            hover:underline
+          "
+          >
+            Create an account
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal
+      disabled={isLoading}
+      isOpen={loginModal.isOpen}
+      title="Login"
+      actionLabel="Continue"
+      onClose={loginModal.onClose}
+      onSubmit={handleSubmit(onSubmit)}
+      body={bodyContent}
+      footer={footerContent}
+    />
+  );
+};
+
+export default LoginModal;
